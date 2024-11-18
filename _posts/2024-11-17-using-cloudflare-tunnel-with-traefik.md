@@ -45,6 +45,9 @@ The output should show your IP address and other metadata.
 
 Follow Cloudflare's [guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel/) to set up a cloudflare tunnel using the dashboard.
 
+![Cloudflare Tunnel configuration page showing mapping from the public domain name to the whoami container present behind the Traefik proxy](/assets/img/posts/cloudflare-tunnel-http.png)
+_Cloudflare Tunnel Configuration_
+
 ```yaml
   cloudflared:
     image: cloudflare/cloudflared
