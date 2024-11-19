@@ -41,12 +41,12 @@ curl -H Host:whoami.$TODO_YOUR_DOMAIN http://127.0.0.1
 
 The output should show your IP address and other metadata.
 
-### Setting up cloudflare tunnel
+### Setting up the Cloudflare tunnel
 
-Follow Cloudflare's [guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel/) to set up a cloudflare tunnel using the dashboard.
+Follow Cloudflare's [guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel/) to set up a Cloudflare tunnel using the dashboard.
 
 ![Cloudflare Tunnel configuration page showing mapping from the public domain name to the whoami container present behind the Traefik proxy](/assets/img/posts/cloudflare-tunnel-http.png)
-_Cloudflare Tunnel Configuration. Notice that in the URL field we put `reverse-proxy`, which is the container name of the Traefik container we defined. This works because docker containers within the same network can reach each other using the container names._
+_Adding a public hostname that maps to the new Cloudflare tunnel. Notice that in the URL field we put `reverse-proxy`, which is the container name of the Traefik container we defined. This works because docker containers within the same network can reach each other using the container names._
 
 ```yaml
   cloudflared:
@@ -68,4 +68,28 @@ curl -L whoami.$TODO_DOMAIN_NAME
 
 The `-L` flag allows curl to follow the redirects used by Cloudflare tunnels. You should also be able to use a device outside your local network to visit your website.
 
-## Part 2: Coming soon
+## Part 2: Using wildcard for subdomains
+
+To minimize configuration overhead, you may wish to avoid having to update the Cloudflare Tunnel configuration every time you want to expose a new Docker container via the tunnel. We can achieve this by using a wildcard DNS entry. 
+
+Start by adding another public hostname for your tunnel.
+
+![Cloudflare Tunnel configuration page showing adding a new hostname using wildcard* for the subdomain](/assets/img/posts/cloudflare-tunnel-http-wildcard.png)
+_Adding a wildcard public hostname for the Cloudflare tunnel_
+
+Notice the warning about DNS records. We need to manually create a wildcard DNS record. This is where our existing CNAME DNS record for `whoami` will come in handy. We can copy the `Target` field from the existing record and use it for the new DNS record. This works because we would like the new record to point to the same tunnel. The `Target` should be of the form `TODO_YOUR_TUNNEL_ID.cfargotunnel.com`.
+
+![Cloudflare DNS configuration page showing creating a new CNAME DNS record](/assets/img/posts/cloudflare-dns-wildcard.png)
+_Adding a wildcard DNS entry with the same `Target` as the existing `whoami` entry._
+
+You can now go ahead and remove the `whoami` hostname entry from the tunnel configuration page. This will also remove the DNS entry automatically.
+
+You can confirm that the tunnel still works with the new wildcard entry by running
+
+```shell
+curl -L whoami.$TODO_DOMAIN_NAME
+```
+
+Adding a new container behind the proxy will now only require modifying the Treafik configuration.
+
+## Part 3: Coming soon
