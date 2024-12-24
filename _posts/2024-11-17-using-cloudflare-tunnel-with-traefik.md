@@ -127,7 +127,6 @@ Let's start by adding the `thomseddon/traefik-forward-auth` service to our Docke
     labels:
       - "traefik.enable=true"
       # HTTP Routers
-      - "traefik.http.routers.oauth-rtr.tls=true"
       - "traefik.http.routers.oauth-rtr.entrypoints=websecure"
       - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$TODO_YOUR_DOMAIN`)"
       # Middlewares
@@ -139,7 +138,7 @@ Let's start by adding the `thomseddon/traefik-forward-auth` service to our Docke
 
 We also need to make some changes to the configuration of our existing containers.
 
-For `reverse-proxy` we need to define a new entrypoint for HTTPS(port `443`) connections. We can also remove the port forwarding for the HTTP port because we would only be accessing our server through the Cloudflare tunnel and containers within each network can reach each other's ports. We also need to map the `traefik/rules` directory which has our middlewares defined.
+For `reverse-proxy` we need to define a new entrypoint for HTTPS(port `443`) connections and specify `tls` for the entrypoint. We can also remove the port forwarding for the HTTP port because we would only be accessing our server through the Cloudflare tunnel and containers within the same network can reach each other's ports. We also need to map the `traefik/rules` directory which has our middlewares defined.
 
 ```yaml
   reverse-proxy:
@@ -152,6 +151,7 @@ For `reverse-proxy` we need to define a new entrypoint for HTTPS(port `443`) con
       - --providers.docker.exposedbydefault=false
       - --providers.file.directory=/rules
       - --entryPoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
     ports:
       # The Web UI (enabled by --api.insecure=true)
       - "8080:8080"
@@ -161,7 +161,7 @@ For `reverse-proxy` we need to define a new entrypoint for HTTPS(port `443`) con
       - $TODO_DOCKER_DIR/traefik/rules:/rules # Dynamic File Provider directory
 ```
 
-For `whoami`, we need to specify the `chain-oauth` middleware and specify `tls`.
+For `whoami`, we need to specify the `chain-oauth` middleware.
 
 ```yaml
   whoami:
@@ -171,10 +171,9 @@ For `whoami`, we need to specify the `chain-oauth` middleware and specify `tls`.
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`whoami.$TODO_YOUR_DOMAIN`)"
       - "traefik.http.routers.whoami.middlewares=chain-oauth@file"
-      - "traefik.http.routers.whoami.tls=true"
 ```
 
-If we try going to `http://whoami.$TODO_YOUR_DOMAIN` on a browser, we will get a `Bad gateway` error. If you start your containers using `docker compose up` you should be able to see an error message in the logs.
+If we try going to `http://whoami.$TODO_YOUR_DOMAIN` on a browser, we will get a `Bad gateway` error. If you started your containers using `docker compose up` you should be able to see an error message in the logs.
 
 ```
 cloudflared      | 2024-11-26T05:52:22Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp 172.19.0.2:80: connect: connection refused" connIndex=1 event=1 ingressRule=0 originService=http://reverse-proxy
@@ -197,4 +196,84 @@ This time the issue is that Traefik is using its default SSL certificate since w
 
 With this setting enabled, Cloudflare will no longer verify the validity of the certificate provided by Traefik. The connection between Cloudflare and your server is via the Cloudflare tunnel and is still encrypted. In the next part, we will cover how to set your SSL certificate so that you don't have to disable TLS verification.
 
-## Part 5: Coming soon
+## Part 5: Obtaining your Let's Encrypt SSL certificate
+
+Using a Let's Encrypt SSL certificate for our Treafik setup will allow Cloudflare to verify the certificate provided by Traefik when Cloudlfare reaches out to our server.
+
+### Using TLS verify
+
+First, let's turn off `No TLS Verify` from the Cloudflare tunnel configuration page to be able to test our changes as we go along.
+
+![Cloudflare Tunnel configuration page showing the TLS settings for the tunnel](/assets/img/posts/cloudflare-tunnel-tls-off.png)_Turning off `No TLS Verify` for the tunnel_
+
+### Updating Traefik configuration to generate the certificate
+
+Create a directory named `acme` under the `traefik` directory you previously created. This directory will host the certificate fetched from Let's Encrypt.
+
+Follow the [instructions](https://www.smarthomebeginner.com/traefik-v3-docker-compose-guide-2024/#Create_Cloudflare_DNS_API_Token_Secret) at smarthomebeginner.com to create a DNS API token and specify it as a Docker secret. You should end up with a `cf_dns_api_token` file inside your `secrets` folder. Note that these instructions are meant for domains that use Cloudflare as their nameserver. Traefik supports multiple other DNS providers. You can find the [documentation](https://doc.traefik.io/traefik/v1.6/configuration/acme/#provider) on their website.
+
+We can now update the docker compose file for our `reverse-proxy` container.
+
+```yaml
+  reverse-proxy:
+    # The official v3 Traefik docker image
+    image: traefik:latest
+    # Enables the web UI and tells Traefik to listen to docker
+    command: 
+      - --api.insecure=true
+      - --providers.docker
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/rules
+      - --entryPoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certresolver=dns-cloudflare
+      - --entrypoints.websecure.http.tls.domains[0].main=$TODO_YOUR_DOMAIN
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.$TODO_YOUR_DOMAIN
+      - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      - --certificatesResolvers.dns-cloudflare.acme.storage=/acme/acme.json
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.delayBeforeCheck=90 # To delay DNS check and reduce LE hitrate
+    ports:
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - $TODO_DOCKER_DIR/traefik/rules:/rules # Dynamic File Provider directory
+      - $TODO_DOCKER_DIR/traefik/acme:/acme # Certs File
+      - $TODO_DOCKER_DIR/logs/traefik:/logs # Traefik logs
+    environment:
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
+      - TZ=$TZ
+    secrets:
+      - cf_dns_api_token
+```
+
+### Setting Origin Server Name
+
+After updating the configuration, start the containers again using `docker compose up`. Wait for about 2 minutes for the certificate to be generated. You should see an `acme.json` file inside the `acme` folder if everything goes well. Now, when we try going to `http://whoami.$TODO_YOUR_DOMAIN` on a browser, we will get a `Bad gateway` error. You should be able to see an error message in the docker logs
+
+```
+cloudflared      | 2024-12-24T20:40:55Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: tls: failed to verify certificate: x509: certificate is valid for f7d858dbef2110696cfba8b30a775af4.cbec424d71d1c5316d7088e49b9f8980.traefik.default, not reverse-proxy" connIndex=0 event=1 ingressRule=0 originService=https://reverse-proxy
+```
+
+This error occurs because Treafik returns the default certificate locally generated by Treafik if a request does not correspond to the any of the configured routes. To fix this, we need to specify the `Origin Server Name` as `*.$TODO_YOUR_DOMAIN` on the configuration page of our Cloudflare tunnel.
+
+![Cloudflare Tunnel configuration page showing the Origin Server Name setting for the tunnel](/assets/img/posts/cloudflare-tunnel-origin-server-name.png)_Setting the `Origin Server Name` for the tunnel_
+
+### Fetching the actual Let's Encrypt certificate
+
+Attempting to open `http://whoami.$TODO_YOUR_DOMAIN` now will result in a different error on the terminal.
+
+```
+cloudflared      | 2024-12-24T22:08:51Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: tls: failed to verify certificate: x509: certificate signed by unknown authority" connIndex=2 event=1 ingressRule=0 originService=https://reverse-proxy
+```
+
+This is because we are currently using the staging certificate from Let's Encrypt. Delete the generated `acme.json` file and comment out the following line from your docker configuration.
+
+```yaml
+# - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory 
+```
+
+Start your containers again and wait for 2 minutes. Traefik should have now fetched the real certificates for your domain. You should now be able to open `http://whoami.$TODO_YOUR_DOMAIN` and autheniticate using Google OAuth successfully.
