@@ -217,7 +217,7 @@ We can now update the docker compose file for our `reverse-proxy` container.
 ```yaml
   reverse-proxy:
     # The official v3 Traefik docker image
-    image: traefik:latest
+    image: traefik:v3.2
     # Enables the web UI and tells Traefik to listen to docker
     command: 
       - --api.insecure=true
