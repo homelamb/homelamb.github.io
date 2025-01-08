@@ -1,5 +1,5 @@
 ---
-title: "Synology Wireguard <samp>/dev/net/tun: no such file or directory</samp>"
+title: "Synology Wireguard: missing /dev/net/tun"
 date: 2024-12-24 15:00:00 -0800
 categories: [Synology]
 tags: [synology, wireguard, docker]
