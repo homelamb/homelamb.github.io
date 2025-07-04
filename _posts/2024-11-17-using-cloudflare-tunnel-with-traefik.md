@@ -69,7 +69,7 @@ _Adding a public hostname that maps to the new Cloudflare tunnel. Notice that in
 You can test the setup using
 
 ```shell
-curl -L whoami.$TODO_DOMAIN_NAME
+curl -L whoami.$TODO_YOUR_DOMAIN
 ```
 
 The `-L` flag allows curl to follow the redirects used by Cloudflare tunnels. You should also be able to use a device outside your local network to visit your website.
@@ -93,7 +93,7 @@ You can now go ahead and remove the `whoami` hostname entry from the tunnel conf
 You can confirm that the tunnel still works with the new wildcard entry by running
 
 ```shell
-curl -L whoami.$TODO_DOMAIN_NAME
+curl -L whoami.$TODO_YOUR_DOMAIN
 ```
 
 Adding a new container behind the proxy will now only require modifying the Treafik configuration.
