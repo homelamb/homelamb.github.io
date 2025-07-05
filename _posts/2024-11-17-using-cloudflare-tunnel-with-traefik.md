@@ -242,10 +242,8 @@ We can now update the docker compose file for our `reverse-proxy` container.
       - /var/run/docker.sock:/var/run/docker.sock
       - $TODO_DOCKER_DIR/traefik/rules:/rules # Dynamic File Provider directory
       - $TODO_DOCKER_DIR/traefik/acme:/acme # Certs File
-      - $TODO_DOCKER_DIR/logs/traefik:/logs # Traefik logs
     environment:
       - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
-      - TZ=$TZ
     secrets:
       - cf_dns_api_token
 ```
