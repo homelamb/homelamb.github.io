@@ -1,6 +1,6 @@
 ---
 title: Using Crowdsec with Traefik and Cloudflare Tunnels
-date: 2025-07-05 20:00:00 -0800
+date: 2025-07-06 15:00:00 -0800
 categories: [Docker]
 tags: [crowdsec, docker, traefik, cloudflare tunnel]
 ---
