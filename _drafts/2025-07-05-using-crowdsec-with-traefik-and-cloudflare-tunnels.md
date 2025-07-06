@@ -41,7 +41,7 @@ This should provide you with the Crowdsec API key. As mentioned in the previous 
 
 # Part 2: Setting up Crowdsec Traefik plugin
 
-We will start by updating the Traefik container for our docker compose file.
+We will start by updating the Traefik container in our docker compose file.
 
 ```yaml
   reverse-proxy:
@@ -79,7 +79,7 @@ LOCAL_IPS='127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12'
 
 ## Adding the crowdsec middleware
 
-Create a new file for the Crowdsec middleware: `middlewares-crowdsec-root.yml` in same directory as your other middlewares.
+Create a new file for the Crowdsec middleware: `middlewares-crowdsec-root.yml` in the same directory as your other middlewares.
 
 ```yaml
 http:
@@ -96,7 +96,7 @@ http:
 ```
 {: file="traefik/rules/middlewares-crowdsec-root.yml"}
 
-Now let's add this middleware to your middleware chain.
+Now let's add this middleware to our middleware chain.
 ```
 http:
   middlewares:
