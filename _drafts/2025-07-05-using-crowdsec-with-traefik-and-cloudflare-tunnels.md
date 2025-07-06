@@ -50,10 +50,10 @@ We will start by updating the Traefik container in our docker compose file.
       ...
       - --log.level=DEBUG
       - --log.filepath=/logs/traefik.log
-      - "--experimental.plugins.crowdsec-bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
-      - "--experimental.plugins.crowdsec-bouncer.version=v1.4.4"
-      - "--accesslog"
-      - "--accesslog.filepath=/logs/access.log"
+      - --experimental.plugins.crowdsec-bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      - --experimental.plugins.crowdsec-bouncer.version=v1.4.4
+      - --accesslog
+      - --accesslog.filepath=/logs/access.log
       - --entrypoints.websecure.forwardedHeaders.trustedIPs=$LOCAL_IPS
     ...
     volumes:
