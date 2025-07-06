@@ -2,7 +2,7 @@
 title: Using Crowdsec with Traefik and Cloudflare Tunnels
 date: 2025-07-05 20:00:00 -0800
 categories: [Docker]
-tags: [crowdesc, docker, traefik, cloudflare tunnel]
+tags: [crowdsec, docker, traefik, cloudflare tunnel]
 ---
 
 In this tutorial we will cover adding Crowdsec to a home lab that uses Traefik and Cloudflare Tunnels. This is a follow-up of my [previous post]({% post_url 2024-11-17-using-cloudflare-tunnel-with-traefik %}) where we covered setting up Traefik with Cloudflare tunnels. If you are getting started with your set up, I would recommend starting there as we will build upon it here. If you already have an existing setup, it might be helpful to read through the previous post to see how it maps to your current setup.
@@ -11,7 +11,7 @@ We will be using the Crowdsec Traefik [plugin](https://github.com/maxlerebourg/c
 
 # Part 1: Adding Crowdsec container
 
-To your docker file add an entry for `crowdsec`.
+To your docker compose file add an entry for `crowdsec`.
 
 ```yaml
   crowdsec:
@@ -37,7 +37,7 @@ With the Crowdsec container added to your config, spin up your docker containers
 docker exec crowdsec cscli bouncers add crowdsecBouncer
 ```
 
-This should provide you with the alpha-numeric key. As mentioned in the previous post, you can specify the `TODO_CROWDSEC_BOUNCER_API_KEY` environment variable in a `.env` in the same directory as your docker compose file.
+This should provide you with the Crowdsec API key. As mentioned in the previous post, you can specify the `TODO_CROWDSEC_BOUNCER_API_KEY` environment variable in a `.env` in the same directory as your docker compose file.
 
 # Part 2: Setting up Crowdsec Traefik plugin
 
@@ -68,18 +68,18 @@ We will start by updating the Traefik container for our docker compose file.
 ```
 {: file="docker-compose.yml" }
 
-Adding `log.level` and `log.filepath` is not strictly needed. But I found it helpful to check that things are working correctly.
+Adding `log.level` and `log.filepath` is not strictly needed, but I found it helpful to check that things are working correctly.
 
-The `$LOCAL_IPS` environment variable defines all the standard local IPs. Here we are instructing Traefik to trust the `X-Forwarded-For` header for requests coming from local IPs. This is important because the requests coming from the cloudflare tunnel will have the local IP of the tunnel container and the IP of the actual visitor will be present in the `X-forwarded-for` header. Without this line, Traefik will drop the forwarded headers and crowdsec won't be able to differential requests coming from different IPs.
+The `$LOCAL_IPS` environment variable defines all the standard local IPs. Here we are instructing Traefik to trust the `X-Forwarded-For` header for requests coming from local IPs. This is important because the requests coming from the cloudflare tunnel will have the local IP of the tunnel container and the IP of the actual visitor will be present in the `X-forwarded-for` header. Without this line, Traefik will drop the forwarded headers and Crowdsec won't be able to differentiate requests coming from different IPs.
 
 ```shell
 LOCAL_IPS='127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12'
 ```
 {: file=".env" }
 
-### Adding the crowdsec middleware
+## Adding the crowdsec middleware
 
-Create a new file for the crowdsec middleware: `middlewares-crowdsec-root.yml` in same directory as your other middlewares.
+Create a new file for the Crowdsec middleware: `middlewares-crowdsec-root.yml` in same directory as your other middlewares.
 
 ```yaml
 http:
@@ -96,7 +96,7 @@ http:
 ```
 {: file="traefik/rules/middlewares-crowdsec-root.yml"}
 
-Now let's add this middleware to your chain.
+Now let's add this middleware to your middleware chain.
 ```
 http:
   middlewares:
@@ -110,7 +110,7 @@ http:
 ```
 {: file="traefik/rules/chain-oauth.yml"}
 
-### Create acquis.yaml file
+## Create acquis.yaml file
 
 Create a new folder called `crowdsec` in your docker root directory and create a new file named `acquis.yaml`.
 
@@ -137,7 +137,7 @@ With all the configuration now in place, start your docker containers again usin
 
 You can use a device on another network to test whether Crowdsec is working. You should be able to access your containers using your public domain name. If you set up a `whoami` container as mentioned in the [previous post]({% post_url 2024-11-17-using-cloudflare-tunnel-with-traefik %}), you can use it to test. On the other device, like your mobile phone, visit `https://whoami.TODO_YOUR_DOMAIN`. You should be able to load the page successfully.
 
-Now, let's test that blocking is working. First, get the IP address of your other device. This can be found either from Traefik's `access.log`. This should be the same as the `X-Forwarded-Host` entry in the whoami web page. To block the page execute the following command in your terminal
+Now let's test that blocking is working. First, get the IP address of your other device. You can find it in Traefik's `access.log`. This will be the same as the `X-Forwarded-Host` entry on the whoami web page. To block the page execute the following command in your terminal
 
 ```shell
 docker exec crowdsec cscli decisions add --ip TODO_OTHER_DEVICE_IP -d 10m
@@ -150,3 +150,5 @@ You can remove your IP from the blocklist by running
 ```shell
 docker exec crowdsec cscli decisions remove --ip TODO_OTHER_DEVICE_IP
 ```
+
+This should be it. Let me know if you have any suggestions for improving this setup or run into any issues.
