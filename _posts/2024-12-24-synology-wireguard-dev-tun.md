@@ -7,7 +7,7 @@ tags: [synology, wireguard, docker]
 
 After updating the DSM version of my Synology NAS, I encountered the following error which prevented the `wg_hideme_privoxy` container from starting.
 
-```
+```terminal
 error gathering device information while adding custom device "/dev/net/tun": no such file or directory
 ```
 

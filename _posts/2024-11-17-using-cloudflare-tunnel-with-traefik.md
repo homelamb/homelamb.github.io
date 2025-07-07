@@ -175,7 +175,7 @@ For `whoami`, we need to specify the `chain-oauth` middleware.
 
 If we try going to `http://whoami.$TODO_YOUR_DOMAIN` on a browser, we will get a `Bad gateway` error. If you started your containers using `docker compose up` you should be able to see an error message in the logs.
 
-```
+```terminal
 cloudflared      | 2024-11-26T05:52:22Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: dial tcp 172.19.0.2:80: connect: connection refused" connIndex=1 event=1 ingressRule=0 originService=http://reverse-proxy
 ```
 
@@ -186,7 +186,7 @@ _Changing the service type to HTTPS for the tunnel_
 
 If we try again, we still get the `Bad gateway` error, but this time a different error message on the terminal.
 
-```
+```terminal
 cloudflared      | 2024-11-26T03:05:37Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: tls: failed to verify certificate: x509: certificate is valid for 796d8bfd92656ca7ac5f647d1235e5ec.eb6ac2b89b32eb341bfdbbcc2559f63d.traefik.default, not reverse-proxy" connIndex=1 event=1 ingressRule=0 originService=https://reverse-proxy
 ```
 
@@ -252,7 +252,7 @@ We can now update the docker compose file for our `reverse-proxy` container.
 
 After updating the configuration, start the containers again using `docker compose up`. Wait for about 2 minutes for the certificate to be generated. You should see an `acme.json` file inside the `acme` folder if everything goes well. Now, when we try going to `http://whoami.$TODO_YOUR_DOMAIN` on a browser, we will get a `Bad gateway` error. You should be able to see an error message in the docker logs
 
-```
+```terminal
 cloudflared      | 2024-12-24T20:40:55Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: tls: failed to verify certificate: x509: certificate is valid for f7d858dbef2110696cfba8b30a775af4.cbec424d71d1c5316d7088e49b9f8980.traefik.default, not reverse-proxy" connIndex=0 event=1 ingressRule=0 originService=https://reverse-proxy
 ```
 
@@ -264,7 +264,7 @@ This error occurs because Treafik returns the default certificate locally genera
 
 Attempting to open `http://whoami.$TODO_YOUR_DOMAIN` now will result in a different error on the terminal.
 
-```
+```terminal
 cloudflared      | 2024-12-24T22:08:51Z ERR  error="Unable to reach the origin service. The service may be down or it may not be responding to traffic from cloudflared: tls: failed to verify certificate: x509: certificate signed by unknown authority" connIndex=2 event=1 ingressRule=0 originService=https://reverse-proxy
 ```
 
